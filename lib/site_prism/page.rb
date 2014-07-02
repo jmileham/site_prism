@@ -80,30 +80,37 @@ module SitePrism
       if url_matcher.kind_of?(Regexp)
         !(page.current_url =~ url_matcher).nil?
       elsif url_matcher.respond_to?(:to_str)
-        matcher_uri = URI.parse(url_matcher.to_str)
-        browser_uri = URI.parse(page.current_url)
-        matching = true
-        %w(scheme user password host port path fragment).each do |uri_attribute|
-          if expected_val = matcher_uri.public_send(uri_attribute)
-            if browser_uri.public_send(uri_attribute) != expected_val
-              matching = false
-              break
-            end
-          end
-        end
-        if matcher_uri.query
-          actual_query_params = URI.decode_www_form(browser_uri.query || "")
-          URI.decode_www_form(matcher_uri.query).each do |expected_kv|
-            if actual_query_params.none? { |actual_kv| actual_kv == expected_kv }
-              matching = false
-              break
-            end
-          end
-        end
-        matching
+        uri_attributes_match? && uri_query_params_match?
       else
         raise SitePrism::InvalidUrlMatcher
       end
+    end
+
+    def browser_uri
+      URI.parse(page.current_url)
+    end
+
+    def matcher_uri
+      URI.parse(url_matcher.to_str)
+    end
+
+    def uri_attributes_match?
+      %w(scheme user password host port path fragment).each do |uri_attribute|
+        if expected_val = matcher_uri.public_send(uri_attribute)
+          return false if browser_uri.public_send(uri_attribute) != expected_val
+        end
+      end
+      true
+    end
+
+    def uri_query_params_match?
+      if matcher_uri.query
+        actual_query_params = URI.decode_www_form(browser_uri.query || "")
+        URI.decode_www_form(matcher_uri.query).each do |expected_kv|
+          return false if actual_query_params.none? { |actual_kv| actual_kv == expected_kv }
+        end
+      end
+      true
     end
   end
 end
