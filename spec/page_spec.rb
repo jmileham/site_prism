@@ -92,14 +92,6 @@ describe SitePrism::Page do
     expect { page.displayed? }.to_not raise_error
   end
 
-  it "should default the matcher to the url" do
-    class PageWithImplicitUrlMatcher < SitePrism::Page
-      set_url "bob"
-    end
-    page = PageWithImplicitUrlMatcher.new
-    expect(page.url_matcher).to eq("bob")
-  end
-
   def swap_current_url(url)
     allow(page).to receive(:page).and_return(double(current_url: url))
   end
@@ -171,6 +163,23 @@ describe SitePrism::Page do
 
     it "matches a complex URL by only path" do
       swap_current_url("https://joe:bump@bla.org:443/foo?bar=baz&bar=boof#myfragment")
+      expect(page.displayed?).to eq(true)
+    end
+  end
+
+  context "with an implicit matcher" do
+    class PageWithImplicitUrlMatcher < SitePrism::Page
+      set_url "/foo"
+    end
+
+    let(:page) { PageWithImplicitUrlMatcher.new }
+
+    it "should default the matcher to the url" do
+      expect(page.url_matcher).to eq("/foo")
+    end
+
+    it "matches a realistic local dev URL" do
+      swap_current_url("http://localhost:3000/foo")
       expect(page.displayed?).to eq(true)
     end
   end
